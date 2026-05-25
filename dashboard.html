@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tennis Elo Edge Engine</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0a0f;--s1:#12121a;--s2:#1a1a28;--brd:#2a2a3a;--txt:#e0e0e8;--dim:#8888aa;
+--acc:#00e676;--red:#ff5252;--yel:#ffd740;--cyan:#18ffff;--pink:#ff2d7b}
+body{background:var(--bg);color:var(--txt);font-family:'JetBrains Mono','SF Mono',monospace;font-size:13px}
+.c{max-width:1100px;margin:0 auto;padding:20px}
+.hdr{border-bottom:2px solid var(--acc);padding:16px 0 12px;margin-bottom:20px}
+.hdr h1{font-size:18px;color:var(--acc);letter-spacing:2px;text-transform:uppercase}
+.hdr .sub{color:var(--dim);font-size:11px;margin-top:4px}
+.panel{background:var(--s1);border:1px solid var(--brd);border-radius:6px;padding:16px;margin-bottom:16px}
+.panel-t{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--pink);margin-bottom:10px;border-bottom:1px solid var(--brd);padding-bottom:6px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{text-align:left;color:var(--dim);font-size:10px;text-transform:uppercase;letter-spacing:1px;padding:6px;border-bottom:1px solid var(--brd)}
+td{padding:5px 6px;border-bottom:1px solid #1a1a24}
+.buy{color:var(--acc);font-weight:bold}
+.manski{color:var(--yel);font-weight:bold}
+.pass{color:var(--dim)}
+.nodata{color:#555}
+.edge-pos{color:var(--acc)}
+.edge-neg{color:var(--red)}
+.stat{display:inline-block;background:var(--s2);border-radius:4px;padding:8px 14px;margin:4px;text-align:center}
+.stat .v{font-size:20px;font-weight:bold;color:var(--cyan)}
+.stat .l{font-size:9px;color:var(--dim);text-transform:uppercase}
+button{background:var(--acc);color:#000;border:none;padding:8px 18px;border-radius:4px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:bold}
+button:hover{opacity:0.85}
+button:disabled{opacity:0.4}
+.loading{color:var(--yel);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.warn{background:#2a2000;border:1px solid var(--yel);border-radius:4px;padding:10px;margin-top:12px;font-size:11px;color:var(--yel)}
+.footer{margin-top:24px;padding-top:12px;border-top:1px solid var(--brd);font-size:10px;color:var(--dim);text-align:center}
+.bo5{background:var(--s2);border-radius:3px;padding:1px 5px;font-size:10px;color:var(--cyan)}
+input{background:var(--s2);border:1px solid var(--brd);color:var(--txt);padding:5px 8px;border-radius:4px;font-family:inherit;font-size:12px}
+input:focus{border-color:var(--acc);outline:none}
+</style>
+</head>
+<body>
+<div class="c">
+<div class="hdr">
+<h1>Tennis Elo Edge Engine</h1>
+<div class="sub">Surface-Adjusted Weighted Elo [Angelini 2021] | Platt Calibration | BO5 Correction | Manski Filter</div>
+</div>
+
+<div class="panel">
+<div class="panel-t">Live Polymarket Scan</div>
+<div style="margin-bottom:10px">
+<label style="color:var(--dim);font-size:11px">Bankroll $</label>
+<input id="bankroll" value="420" style="width:80px;margin-right:12px">
+<button onclick="scan()" id="scan-btn">Scan Markets</button>
+</div>
+<div id="stats"></div>
+<div id="signals"><span class="loading">Click Scan to load...</span></div>
+</div>
+
+<div class="panel">
+<div class="panel-t">Matchup Predictor</div>
+<input id="pa" placeholder="Player A" style="width:140px">
+<input id="pb" placeholder="Player B" style="width:140px">
+<select id="surf" style="background:var(--s2);border:1px solid var(--brd);color:var(--txt);padding:5px;border-radius:4px;font-family:inherit">
+<option value="Clay">Clay</option><option value="Hard">Hard</option><option value="Grass">Grass</option>
+</select>
+<label style="color:var(--dim);font-size:11px;margin-left:8px"><input type="checkbox" id="slam-chk" checked> Grand Slam (BO5)</label>
+<button onclick="predict()" style="margin-left:8px">Predict</button>
+<div id="pred-result" style="margin-top:10px"></div>
+</div>
+
+<div class="panel">
+<div class="panel-t">Elo Rankings</div>
+<select id="rank-surf" onchange="loadRankings()" style="background:var(--s2);border:1px solid var(--brd);color:var(--txt);padding:5px;border-radius:4px;font-family:inherit;margin-bottom:8px">
+<option value="overall">Overall</option><option value="Clay">Clay</option><option value="Hard">Hard</option><option value="Grass">Grass</option>
+</select>
+<div id="rankings"><span class="loading">Loading...</span></div>
+</div>
+
+<div class="footer">
+Academic: Angelini et al. (2021) EJOR | Sackmann Tennis Elo | Platt (1999) | Manski (2006) | Kelly (1956)<br>
+Research tool only. Not trading advice.<br>
+<a href="/api/scan" style="color:var(--pink)">API: /api/scan</a> |
+<a href="/api/rankings" style="color:var(--pink)">API: /api/rankings</a> |
+<a href="/api/predict?player_a=Sinner&player_b=Alcaraz&surface=Clay&slam=true" style="color:var(--pink)">API: /api/predict</a>
+</div>
+</div>
+
+<script>
+async function scan(){
+const btn=document.getElementById('scan-btn');btn.disabled=true;btn.textContent='Scanning...';
+const br=document.getElementById('bankroll').value;
+const d=await fetch(`/api/scan?bankroll=${br}`).then(r=>r.json());
+document.getElementById('stats').innerHTML=`
+<div class="stat"><div class="v">${d.engine.players}</div><div class="l">Players</div></div>
+<div class="stat"><div class="v">${d.engine.matches}</div><div class="l">Matches</div></div>
+<div class="stat"><div class="v">${d.matches_scanned}</div><div class="l">Live Markets</div></div>
+<div class="stat"><div class="v">${d.signals.filter(s=>s.signal.startsWith('BUY')).length}</div><div class="l">BUY Signals</div></div>
+`;
+const sigs=d.signals;
+let html='<table><thead><tr><th>Match</th><th>Surf</th><th>Model</th><th>Market</th><th>Edge</th><th>Kelly</th><th>Size</th><th>Conf</th><th>Signal</th><th>BO5</th></tr></thead><tbody>';
+for(const s of sigs){
+const best=s.edge_a>=s.edge_b?'a':'b';
+const model=best==='a'?s.model_a:s.model_b;
+const mkt=best==='a'?s.market_a:s.market_b;
+const edge=best==='a'?s.edge_a:s.edge_b;
+const kelly=best==='a'?s.kelly_a:s.kelly_b;
+const size=best==='a'?s.size_a:s.size_b;
+const side=best==='a'?s.player_a:s.player_b;
+const cls=s.signal.startsWith('BUY')?'buy':s.signal==='MANSKI'?'manski':s.signal==='NO_DATA'?'nodata':'pass';
+const ec=edge>0.05?'edge-pos':edge<-0.05?'edge-neg':'';
+const bo5=s.bo5_boost>0.01?`<span class="bo5">+${(s.bo5_boost*100).toFixed(1)}%</span>`:'';
+html+=`<tr>
+<td>${s.player_a} v ${s.player_b}</td>
+<td>${s.surface}</td>
+<td>${s.signal==='NO_DATA'?'-':(model*100).toFixed(0)+'%'}</td>
+<td>${s.signal==='NO_DATA'?'-':(mkt*100).toFixed(0)+'%'}</td>
+<td class="${ec}">${s.signal==='NO_DATA'?'-':(edge>0?'+':'')+(edge*100).toFixed(1)+'%'}</td>
+<td>${kelly>0?(kelly*100).toFixed(1)+'%':'-'}</td>
+<td>${size>0?'$'+size.toFixed(0):'-'}</td>
+<td>${s.confidence.toFixed(0)}</td>
+<td class="${cls}">${s.signal.startsWith('BUY')?s.signal+' '+side.split(' ').pop():s.signal}</td>
+<td>${bo5}</td>
+</tr>`;
+}
+html+='</tbody></table>';
+const manski=sigs.filter(s=>s.signal==='MANSKI');
+if(manski.length)html+=`<div class="warn">Manski Warning: ${manski.length} match(es) with edge >15% flagged as likely model miscalibration. If the market disagrees by that much, the model is probably wrong.</div>`;
+document.getElementById('signals').innerHTML=html;
+btn.disabled=false;btn.textContent='Scan Markets';
+}
+
+async function predict(){
+const a=document.getElementById('pa').value,b=document.getElementById('pb').value;
+const s=document.getElementById('surf').value,slam=document.getElementById('slam-chk').checked;
+if(!a||!b)return;
+const d=await fetch(`/api/predict?player_a=${encodeURIComponent(a)}&player_b=${encodeURIComponent(b)}&surface=${s}&slam=${slam}`).then(r=>r.json());
+if(d.error){document.getElementById('pred-result').innerHTML=`<span style="color:var(--red)">${d.error}</span>`;return}
+document.getElementById('pred-result').innerHTML=`
+<div style="margin-top:8px">
+<strong>${d.player_a}</strong> vs <strong>${d.player_b}</strong> (${d.surface}, ${d.slam?'BO5':'BO3'})<br>
+<div class="stat"><div class="v">${(d.p_a*100).toFixed(1)}%</div><div class="l">${d.player_a.split(' ').pop()}</div></div>
+<div class="stat"><div class="v">${(d.p_b*100).toFixed(1)}%</div><div class="l">${d.player_b.split(' ').pop()}</div></div>
+<div style="margin-top:8px;font-size:11px;color:var(--dim)">
+Raw Elo: ${(d.p_raw*100).toFixed(1)}% | Calibrated: ${(d.p_calibrated*100).toFixed(1)}% | BO5 boost: ${d.bo5_boost>0?'+':''}${(d.bo5_boost*100).toFixed(1)}%<br>
+Elo A: ${d.elo_a} (surface ${d.surface_elo_a}) | Elo B: ${d.elo_b} (surface ${d.surface_elo_b})<br>
+Fatigue: A=${d.fatigue_a}, B=${d.fatigue_b}
+</div></div>`;
+}
+
+async function loadRankings(){
+const s=document.getElementById('rank-surf').value;
+const d=await fetch(`/api/rankings?surface=${s}&limit=20`).then(r=>r.json());
+let h='<table><thead><tr><th>#</th><th>Player</th><th>Overall</th><th>Hard</th><th>Clay</th><th>Grass</th><th>Matches</th></tr></thead><tbody>';
+for(const p of d)h+=`<tr><td>${p.rank}</td><td>${p.name}</td><td>${p.overall}</td><td>${p.hard}</td><td>${p.clay}</td><td>${p.grass}</td><td>${p.matches}</td></tr>`;
+h+='</tbody></table>';
+document.getElementById('rankings').innerHTML=h;
+}
+loadRankings();
+</script>
+</body>
+</html>
