@@ -8,12 +8,14 @@
 *{margin:0;padding:0;box-sizing:border-box}
 :root{--bg:#0a0a0f;--s1:#12121a;--s2:#1a1a28;--brd:#2a2a3a;--txt:#e0e0e8;--dim:#8888aa;
 --acc:#00e676;--red:#ff5252;--yel:#ffd740;--cyan:#18ffff;--pink:#ff2d7b}
-body{background:var(--bg);color:var(--txt);font-family:'JetBrains Mono','SF Mono',monospace;font-size:13px}
+body{background:var(--bg);color:var(--txt);font-family:'JetBrains Mono','SF Mono',monospace;font-size:13px;line-height:1.5}
 .c{max-width:1100px;margin:0 auto;padding:20px}
 .hdr{border-bottom:2px solid var(--acc);padding:16px 0 12px;margin-bottom:20px}
 .hdr h1{font-size:18px;color:var(--acc);letter-spacing:2px;text-transform:uppercase}
 .hdr .sub{color:var(--dim);font-size:11px;margin-top:4px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .panel{background:var(--s1);border:1px solid var(--brd);border-radius:6px;padding:16px;margin-bottom:16px}
+.panel.full{grid-column:1/-1}
 .panel-t{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--pink);margin-bottom:10px;border-bottom:1px solid var(--brd);padding-bottom:6px}
 table{width:100%;border-collapse:collapse;font-size:12px}
 th{text-align:left;color:var(--dim);font-size:10px;text-transform:uppercase;letter-spacing:1px;padding:6px;border-bottom:1px solid var(--brd)}
@@ -21,141 +23,251 @@ td{padding:5px 6px;border-bottom:1px solid #1a1a24}
 .buy{color:var(--acc);font-weight:bold}
 .manski{color:var(--yel);font-weight:bold}
 .pass{color:var(--dim)}
-.nodata{color:#555}
-.edge-pos{color:var(--acc)}
-.edge-neg{color:var(--red)}
-.stat{display:inline-block;background:var(--s2);border-radius:4px;padding:8px 14px;margin:4px;text-align:center}
-.stat .v{font-size:20px;font-weight:bold;color:var(--cyan)}
-.stat .l{font-size:9px;color:var(--dim);text-transform:uppercase}
-button{background:var(--acc);color:#000;border:none;padding:8px 18px;border-radius:4px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:bold}
+input,select{background:var(--s2);border:1px solid var(--brd);color:var(--txt);padding:6px 10px;border-radius:4px;font-family:inherit;font-size:12px;width:100%}
+input:focus,select:focus{border-color:var(--acc);outline:none}
+button{background:var(--acc);color:#000;border:none;padding:8px 18px;border-radius:4px;cursor:pointer;font-family:inherit;font-size:12px;font-weight:bold;width:100%}
 button:hover{opacity:0.85}
-button:disabled{opacity:0.4}
-.loading{color:var(--yel);animation:pulse 1s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
-.warn{background:#2a2000;border:1px solid var(--yel);border-radius:4px;padding:10px;margin-top:12px;font-size:11px;color:var(--yel)}
+button.sec{background:var(--s2);color:var(--txt);border:1px solid var(--brd)}
+.stat{display:inline-block;background:var(--s2);border-radius:4px;padding:10px 16px;margin:4px;text-align:center}
+.stat .v{font-size:22px;font-weight:bold;color:var(--cyan)}
+.stat .l{font-size:9px;color:var(--dim);text-transform:uppercase;margin-top:2px}
+.edge-pos{color:var(--acc)}.edge-neg{color:var(--red)}
+.warn{background:#2a2000;border:1px solid var(--yel);border-radius:4px;padding:10px;margin-top:10px;font-size:11px;color:var(--yel)}
+.signal-box{border-radius:6px;padding:14px;margin-top:12px;text-align:center;font-size:16px;font-weight:bold}
+.signal-buy{background:#0a2a0a;border:2px solid var(--acc);color:var(--acc)}
+.signal-pass{background:var(--s2);border:2px solid var(--brd);color:var(--dim)}
+.signal-manski{background:#2a2000;border:2px solid var(--yel);color:var(--yel)}
+.bo5-badge{background:var(--s2);border-radius:3px;padding:2px 8px;font-size:10px;color:var(--cyan);display:inline-block}
+.search-results{max-height:150px;overflow-y:auto;background:var(--s2);border:1px solid var(--brd);border-radius:4px;display:none;position:absolute;width:calc(100% - 32px);z-index:10}
+.search-results div{padding:6px 10px;cursor:pointer;font-size:11px}
+.search-results div:hover{background:var(--brd)}
 .footer{margin-top:24px;padding-top:12px;border-top:1px solid var(--brd);font-size:10px;color:var(--dim);text-align:center}
-.bo5{background:var(--s2);border-radius:3px;padding:1px 5px;font-size:10px;color:var(--cyan)}
-input{background:var(--s2);border:1px solid var(--brd);color:var(--txt);padding:5px 8px;border-radius:4px;font-family:inherit;font-size:12px}
-input:focus{border-color:var(--acc);outline:none}
+.footer a{color:var(--pink);text-decoration:none}
 </style>
 </head>
 <body>
 <div class="c">
 <div class="hdr">
 <h1>Tennis Elo Edge Engine</h1>
-<div class="sub">Surface-Adjusted Weighted Elo [Angelini 2021] | Platt Calibration | BO5 Correction | Manski Filter</div>
+<div class="sub">Weighted Elo [Angelini 2021] | Platt Calibration | BO5 Correction | Manski Filter | Live Elo Updates</div>
 </div>
 
-<div class="panel">
-<div class="panel-t">Live Polymarket Scan</div>
-<div style="margin-bottom:10px">
-<label style="color:var(--dim);font-size:11px">Bankroll $</label>
-<input id="bankroll" value="420" style="width:80px;margin-right:12px">
-<button onclick="scan()" id="scan-btn">Scan Markets</button>
+<!-- MAIN: Matchup Predictor -->
+<div class="panel full">
+<div class="panel-t">Matchup Predictor -- Compare Model vs Polymarket</div>
+<div class="grid" style="gap:12px">
+<div style="position:relative">
+<label style="color:var(--dim);font-size:10px">PLAYER A</label>
+<input id="pa" placeholder="Search player..." oninput="searchPlayer('pa','sr-a')">
+<div class="search-results" id="sr-a"></div>
 </div>
-<div id="stats"></div>
-<div id="signals"><span class="loading">Click Scan to load...</span></div>
+<div style="position:relative">
+<label style="color:var(--dim);font-size:10px">PLAYER B</label>
+<input id="pb" placeholder="Search player..." oninput="searchPlayer('pb','sr-b')">
+<div class="search-results" id="sr-b"></div>
 </div>
-
-<div class="panel">
-<div class="panel-t">Matchup Predictor</div>
-<input id="pa" placeholder="Player A" style="width:140px">
-<input id="pb" placeholder="Player B" style="width:140px">
-<select id="surf" style="background:var(--s2);border:1px solid var(--brd);color:var(--txt);padding:5px;border-radius:4px;font-family:inherit">
+<div>
+<label style="color:var(--dim);font-size:10px">SURFACE</label>
+<select id="surf">
 <option value="Clay">Clay</option><option value="Hard">Hard</option><option value="Grass">Grass</option>
 </select>
-<label style="color:var(--dim);font-size:11px;margin-left:8px"><input type="checkbox" id="slam-chk" checked> Grand Slam (BO5)</label>
-<button onclick="predict()" style="margin-left:8px">Predict</button>
-<div id="pred-result" style="margin-top:10px"></div>
+</div>
+<div>
+<label style="color:var(--dim);font-size:10px">FORMAT</label>
+<select id="format">
+<option value="true">Grand Slam (BO5)</option><option value="false">Tour (BO3)</option>
+</select>
+</div>
+<div>
+<label style="color:var(--dim);font-size:10px">PM PRICE FOR PLAYER A (optional)</label>
+<input id="pm-price" type="number" step="0.01" min="0" max="1" placeholder="e.g. 0.72">
+</div>
+<div>
+<label style="color:var(--dim);font-size:10px">BANKROLL $</label>
+<input id="bankroll" type="number" value="420">
+</div>
+</div>
+<div style="margin-top:12px"><button onclick="runPredict()">ANALYZE MATCHUP</button></div>
+<div id="pred-result" style="margin-top:16px"></div>
 </div>
 
+<!-- Ingest Results -->
+<div class="grid">
+<div class="panel">
+<div class="panel-t">Ingest Live Result (Updates Elo)</div>
+<div style="display:grid;gap:8px">
+<div><label style="color:var(--dim);font-size:10px">WINNER</label><input id="ig-w" placeholder="Winner name"></div>
+<div><label style="color:var(--dim);font-size:10px">LOSER</label><input id="ig-l" placeholder="Loser name"></div>
+<div><label style="color:var(--dim);font-size:10px">SCORE</label><input id="ig-s" value="6-4 6-3" placeholder="6-4 7-6(4) 6-2"></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+<div><label style="color:var(--dim);font-size:10px">SURFACE</label>
+<select id="ig-surf" style="width:100%"><option value="Clay">Clay</option><option value="Hard">Hard</option><option value="Grass">Grass</option></select></div>
+<div><label style="color:var(--dim);font-size:10px">LEVEL</label>
+<select id="ig-lvl" style="width:100%"><option value="G">Grand Slam</option><option value="M">Masters</option><option value="A">ATP 500</option><option value="B">ATP 250</option></select></div>
+</div>
+<button class="sec" onclick="ingestResult()">Update Elo</button>
+<div id="ig-result" style="font-size:11px"></div>
+</div>
+</div>
+
+<!-- Rankings -->
 <div class="panel">
 <div class="panel-t">Elo Rankings</div>
-<select id="rank-surf" onchange="loadRankings()" style="background:var(--s2);border:1px solid var(--brd);color:var(--txt);padding:5px;border-radius:4px;font-family:inherit;margin-bottom:8px">
-<option value="overall">Overall</option><option value="Clay">Clay</option><option value="Hard">Hard</option><option value="Grass">Grass</option>
+<div style="margin-bottom:8px">
+<select id="rank-surf" onchange="loadRankings()" style="width:auto">
+<option value="overall">Overall</option><option value="Clay">Clay (RG)</option><option value="Hard">Hard</option><option value="Grass">Grass</option>
 </select>
-<div id="rankings"><span class="loading">Loading...</span></div>
+</div>
+<div id="rankings" style="max-height:400px;overflow-y:auto"><span style="color:var(--yel)">Loading...</span></div>
+</div>
+</div>
+
+<!-- Auto Scan (secondary) -->
+<div class="panel full">
+<div class="panel-t">Auto Scan (experimental -- manual matchups above are more reliable)</div>
+<button class="sec" onclick="scan()" id="scan-btn" style="width:auto;padding:6px 14px">Scan Live PM Markets</button>
+<div id="scan-result" style="margin-top:10px;font-size:11px;color:var(--dim)"></div>
 </div>
 
 <div class="footer">
 Academic: Angelini et al. (2021) EJOR | Sackmann Tennis Elo | Platt (1999) | Manski (2006) | Kelly (1956)<br>
 Research tool only. Not trading advice.<br>
-<a href="/api/scan" style="color:var(--pink)">API: /api/scan</a> |
-<a href="/api/rankings" style="color:var(--pink)">API: /api/rankings</a> |
-<a href="/api/predict?player_a=Sinner&player_b=Alcaraz&surface=Clay&slam=true" style="color:var(--pink)">API: /api/predict</a>
+<a href="/api/rankings?surface=Clay">Rankings</a> |
+<a href="/api/search?q=sinner">Search</a> |
+<a href="/api/predict?player_a=Sinner&player_b=Zverev&surface=Clay&slam=true&market_price_a=0.75">Predict w/ Edge</a>
 </div>
 </div>
 
 <script>
-async function scan(){
-const btn=document.getElementById('scan-btn');btn.disabled=true;btn.textContent='Scanning...';
-const br=document.getElementById('bankroll').value;
-const d=await fetch(`/api/scan?bankroll=${br}`).then(r=>r.json());
-document.getElementById('stats').innerHTML=`
-<div class="stat"><div class="v">${d.engine.players}</div><div class="l">Players</div></div>
-<div class="stat"><div class="v">${d.engine.matches}</div><div class="l">Matches</div></div>
-<div class="stat"><div class="v">${d.matches_scanned}</div><div class="l">Live Markets</div></div>
-<div class="stat"><div class="v">${d.signals.filter(s=>s.signal.startsWith('BUY')).length}</div><div class="l">BUY Signals</div></div>
-`;
-const sigs=d.signals;
-let html='<table><thead><tr><th>Match</th><th>Surf</th><th>Model</th><th>Market</th><th>Edge</th><th>Kelly</th><th>Size</th><th>Conf</th><th>Signal</th><th>BO5</th></tr></thead><tbody>';
-for(const s of sigs){
-const best=s.edge_a>=s.edge_b?'a':'b';
-const model=best==='a'?s.model_a:s.model_b;
-const mkt=best==='a'?s.market_a:s.market_b;
-const edge=best==='a'?s.edge_a:s.edge_b;
-const kelly=best==='a'?s.kelly_a:s.kelly_b;
-const size=best==='a'?s.size_a:s.size_b;
-const side=best==='a'?s.player_a:s.player_b;
-const cls=s.signal.startsWith('BUY')?'buy':s.signal==='MANSKI'?'manski':s.signal==='NO_DATA'?'nodata':'pass';
-const ec=edge>0.05?'edge-pos':edge<-0.05?'edge-neg':'';
-const bo5=s.bo5_boost>0.01?`<span class="bo5">+${(s.bo5_boost*100).toFixed(1)}%</span>`:'';
-html+=`<tr>
-<td>${s.player_a} v ${s.player_b}</td>
-<td>${s.surface}</td>
-<td>${s.signal==='NO_DATA'?'-':(model*100).toFixed(0)+'%'}</td>
-<td>${s.signal==='NO_DATA'?'-':(mkt*100).toFixed(0)+'%'}</td>
-<td class="${ec}">${s.signal==='NO_DATA'?'-':(edge>0?'+':'')+(edge*100).toFixed(1)+'%'}</td>
-<td>${kelly>0?(kelly*100).toFixed(1)+'%':'-'}</td>
-<td>${size>0?'$'+size.toFixed(0):'-'}</td>
-<td>${s.confidence.toFixed(0)}</td>
-<td class="${cls}">${s.signal.startsWith('BUY')?s.signal+' '+side.split(' ').pop():s.signal}</td>
-<td>${bo5}</td>
-</tr>`;
+let searchTimeout;
+async function searchPlayer(inputId, resultsId) {
+clearTimeout(searchTimeout);
+const q = document.getElementById(inputId).value;
+const el = document.getElementById(resultsId);
+if (q.length < 2) { el.style.display='none'; return; }
+searchTimeout = setTimeout(async () => {
+const d = await fetch(`/api/search?q=${encodeURIComponent(q)}`).then(r=>r.json());
+if (!d.length) { el.style.display='none'; return; }
+el.innerHTML = d.map(p =>
+`<div onclick="document.getElementById('${inputId}').value='${p.name}';document.getElementById('${resultsId}').style.display='none'">
+<strong>${p.name}</strong> <span style="color:var(--dim)">${p.overall} Elo | ${p.matches} matches</span></div>`
+).join('');
+el.style.display='block';
+}, 300);
 }
-html+='</tbody></table>';
-const manski=sigs.filter(s=>s.signal==='MANSKI');
-if(manski.length)html+=`<div class="warn">Manski Warning: ${manski.length} match(es) with edge >15% flagged as likely model miscalibration. If the market disagrees by that much, the model is probably wrong.</div>`;
-document.getElementById('signals').innerHTML=html;
-btn.disabled=false;btn.textContent='Scan Markets';
+document.addEventListener('click', e => {
+document.querySelectorAll('.search-results').forEach(el => { if(!el.contains(e.target)) el.style.display='none'; });
+});
+
+async function runPredict() {
+const pa = document.getElementById('pa').value;
+const pb = document.getElementById('pb').value;
+const surf = document.getElementById('surf').value;
+const slam = document.getElementById('format').value;
+const pmPrice = document.getElementById('pm-price').value;
+const bankroll = document.getElementById('bankroll').value;
+if (!pa || !pb) return;
+
+let url = `/api/predict?player_a=${encodeURIComponent(pa)}&player_b=${encodeURIComponent(pb)}&surface=${surf}&slam=${slam}&bankroll=${bankroll}`;
+if (pmPrice) url += `&market_price_a=${pmPrice}`;
+
+const d = await fetch(url).then(r=>r.json());
+if (d.error) { document.getElementById('pred-result').innerHTML=`<span style="color:var(--red)">${d.error}</span>`; return; }
+
+const pA = (d.p_a*100).toFixed(1);
+const pB = (d.p_b*100).toFixed(1);
+let html = `
+<div class="grid" style="gap:12px">
+<div class="stat"><div class="v">${pA}%</div><div class="l">${d.player_a}</div></div>
+<div class="stat"><div class="v">${pB}%</div><div class="l">${d.player_b}</div></div>
+</div>
+<div style="margin-top:10px;font-size:11px;color:var(--dim)">
+<div>Raw Elo: ${(d.p_raw*100).toFixed(1)}% | Calibrated (Platt): ${(d.p_calibrated*100).toFixed(1)}% | BO5 boost: <span class="bo5-badge">${d.bo5_boost>0?'+':''}${(d.bo5_boost*100).toFixed(1)}%</span></div>
+<div>${d.player_a}: Elo ${d.elo_a} (${d.surface} surf: ${d.surface_elo_a}, overall: ${d.overall_elo_a}) ${d.fatigue_a>0?'| Fatigue: -'+d.fatigue_a:''}</div>
+<div>${d.player_b}: Elo ${d.elo_b} (${d.surface} surf: ${d.surface_elo_b}, overall: ${d.overall_elo_b}) ${d.fatigue_b>0?'| Fatigue: -'+d.fatigue_b:''}</div>
+</div>`;
+
+if (d.market) {
+const m = d.market;
+const edgeMax = Math.max(Math.abs(m.edge_a), Math.abs(m.edge_b));
+const bestSide = m.edge_a >= m.edge_b ? 'a' : 'b';
+const bestEdge = bestSide==='a' ? m.edge_a : m.edge_b;
+const bestKelly = bestSide==='a' ? m.kelly_a : m.kelly_b;
+const bestSize = bestSide==='a' ? m.size_a : m.size_b;
+const bestPlayer = bestSide==='a' ? d.player_a : d.player_b;
+const bestModel = bestSide==='a' ? d.p_a : d.p_b;
+const bestMkt = bestSide==='a' ? m.price_a : m.price_b;
+
+let sigClass, sigText;
+if (m.signal.startsWith('BUY')) { sigClass='signal-buy'; sigText=m.signal; }
+else if (m.signal==='MANSKI') { sigClass='signal-manski'; sigText='MANSKI WARNING -- Edge too large, model likely wrong'; }
+else { sigClass='signal-pass'; sigText='PASS -- No actionable edge'; }
+
+html += `
+<div class="signal-box ${sigClass}">${sigText}</div>
+<div style="margin-top:10px">
+<table>
+<tr><th>Side</th><th>Model</th><th>Market</th><th>Edge</th><th>Kelly %</th><th>Size</th></tr>
+<tr>
+<td>${d.player_a}</td>
+<td>${(d.p_a*100).toFixed(1)}%</td>
+<td>${(m.price_a*100).toFixed(1)}%</td>
+<td class="${m.edge_a>0.03?'edge-pos':m.edge_a<-0.03?'edge-neg':''}">${m.edge_a>0?'+':''}${(m.edge_a*100).toFixed(1)}%</td>
+<td>${m.kelly_a>0?(m.kelly_a*100).toFixed(1)+'%':'-'}</td>
+<td>${m.size_a>0?'$'+m.size_a.toFixed(0):'-'}</td>
+</tr>
+<tr>
+<td>${d.player_b}</td>
+<td>${(d.p_b*100).toFixed(1)}%</td>
+<td>${(m.price_b*100).toFixed(1)}%</td>
+<td class="${m.edge_b>0.03?'edge-pos':m.edge_b<-0.03?'edge-neg':''}">${m.edge_b>0?'+':''}${(m.edge_b*100).toFixed(1)}%</td>
+<td>${m.kelly_b>0?(m.kelly_b*100).toFixed(1)+'%':'-'}</td>
+<td>${m.size_b>0?'$'+m.size_b.toFixed(0):'-'}</td>
+</tr>
+</table>
+</div>
+<div style="margin-top:8px;font-size:11px;color:var(--dim)">${m.reasoning}</div>`;
+if (m.manski_flag) html += `<div class="warn">Manski [2006]: When your model disagrees with a liquid market by >15%, the market is almost certainly right. Investigate before trading.</div>`;
+} else {
+html += `<div style="margin-top:10px;font-size:11px;color:var(--dim)">Enter a Polymarket price above to see edge + Kelly sizing.</div>`;
+}
+document.getElementById('pred-result').innerHTML = html;
 }
 
-async function predict(){
-const a=document.getElementById('pa').value,b=document.getElementById('pb').value;
-const s=document.getElementById('surf').value,slam=document.getElementById('slam-chk').checked;
-if(!a||!b)return;
-const d=await fetch(`/api/predict?player_a=${encodeURIComponent(a)}&player_b=${encodeURIComponent(b)}&surface=${s}&slam=${slam}`).then(r=>r.json());
-if(d.error){document.getElementById('pred-result').innerHTML=`<span style="color:var(--red)">${d.error}</span>`;return}
-document.getElementById('pred-result').innerHTML=`
-<div style="margin-top:8px">
-<strong>${d.player_a}</strong> vs <strong>${d.player_b}</strong> (${d.surface}, ${d.slam?'BO5':'BO3'})<br>
-<div class="stat"><div class="v">${(d.p_a*100).toFixed(1)}%</div><div class="l">${d.player_a.split(' ').pop()}</div></div>
-<div class="stat"><div class="v">${(d.p_b*100).toFixed(1)}%</div><div class="l">${d.player_b.split(' ').pop()}</div></div>
-<div style="margin-top:8px;font-size:11px;color:var(--dim)">
-Raw Elo: ${(d.p_raw*100).toFixed(1)}% | Calibrated: ${(d.p_calibrated*100).toFixed(1)}% | BO5 boost: ${d.bo5_boost>0?'+':''}${(d.bo5_boost*100).toFixed(1)}%<br>
-Elo A: ${d.elo_a} (surface ${d.surface_elo_a}) | Elo B: ${d.elo_b} (surface ${d.surface_elo_b})<br>
-Fatigue: A=${d.fatigue_a}, B=${d.fatigue_b}
-</div></div>`;
+async function ingestResult() {
+const w=document.getElementById('ig-w').value, l=document.getElementById('ig-l').value;
+const s=document.getElementById('ig-s').value, surf=document.getElementById('ig-surf').value;
+const lvl=document.getElementById('ig-lvl').value;
+if (!w||!l) return;
+const d = await fetch(`/api/ingest?winner=${encodeURIComponent(w)}&loser=${encodeURIComponent(l)}&score=${encodeURIComponent(s)}&surface=${surf}&tourney_level=${lvl}`).then(r=>r.json());
+document.getElementById('ig-result').innerHTML = d.error ? `<span style="color:var(--red)">${d.error}</span>` :
+`<span style="color:var(--acc)">Updated!</span> ${d.winner} (${d.winner_elo.effective}) beat ${d.loser} (${d.loser_elo.effective})`;
 }
 
-async function loadRankings(){
-const s=document.getElementById('rank-surf').value;
-const d=await fetch(`/api/rankings?surface=${s}&limit=20`).then(r=>r.json());
-let h='<table><thead><tr><th>#</th><th>Player</th><th>Overall</th><th>Hard</th><th>Clay</th><th>Grass</th><th>Matches</th></tr></thead><tbody>';
-for(const p of d)h+=`<tr><td>${p.rank}</td><td>${p.name}</td><td>${p.overall}</td><td>${p.hard}</td><td>${p.clay}</td><td>${p.grass}</td><td>${p.matches}</td></tr>`;
+async function loadRankings() {
+const s = document.getElementById('rank-surf').value;
+const d = await fetch(`/api/rankings?surface=${s}&limit=25`).then(r=>r.json());
+let h='<table><thead><tr><th>#</th><th>Player</th><th>Elo</th><th>H</th><th>C</th><th>G</th><th>M</th></tr></thead><tbody>';
+for(const p of d)h+=`<tr><td>${p.rank}</td><td style="cursor:pointer" onclick="document.getElementById('pa').value='${p.name}'">${p.name}</td><td style="color:var(--cyan)">${p.overall}</td><td>${p.hard}</td><td>${p.clay}</td><td>${p.grass}</td><td>${p.matches}</td></tr>`;
 h+='</tbody></table>';
 document.getElementById('rankings').innerHTML=h;
 }
+
+async function scan() {
+document.getElementById('scan-btn').textContent='Scanning...';
+const d = await fetch('/api/scan').then(r=>r.json());
+const buys = d.signals.filter(s=>s.signal.startsWith('BUY'));
+const manski = d.signals.filter(s=>s.signal==='MANSKI');
+let h = `Scanned ${d.matches_scanned} markets. ${buys.length} BUY, ${manski.length} MANSKI, ${d.signals.length-buys.length-manski.length} PASS.<br>`;
+for (const s of d.signals.filter(x=>x.signal!=='NO_DATA')) {
+const edge = Math.max(s.edge_a,s.edge_b);
+const cls = s.signal.startsWith('BUY')?'buy':s.signal==='MANSKI'?'manski':'pass';
+h += `<span class="${cls}">${s.signal}</span> ${s.player_a} v ${s.player_b} (${s.surface}) edge:${(edge*100).toFixed(1)}% conf:${s.confidence.toFixed(0)}<br>`;
+}
+document.getElementById('scan-result').innerHTML = h;
+document.getElementById('scan-btn').textContent='Scan Live PM Markets';
+}
+
 loadRankings();
 </script>
 </body>
